@@ -1,3 +1,10 @@
+-- =========================================================================
+-- DEVELOPER PLACEHOLDER NOTICE (Ankur Varshney):
+-- This SQL view represents your GE Power Supplier Quality inspections analytics view.
+-- Replace base tables (tbl_inspections, tbl_deliveries, tbl_shipments, tbl_po_lines)
+-- with your actual schema references when executing in production.
+-- =========================================================================
+
 CREATE OR REPLACE VIEW vw_quality_inspections AS
 WITH inspection_summary AS (
     SELECT 

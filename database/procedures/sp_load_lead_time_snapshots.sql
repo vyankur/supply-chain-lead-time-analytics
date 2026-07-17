@@ -1,3 +1,10 @@
+-- =========================================================================
+-- DEVELOPER PLACEHOLDER NOTICE (Ankur Varshney):
+-- This PL/SQL stored procedure represents your incremental snapshot loading logic.
+-- Replace fact snapshot tables and log references with your actual
+-- database schema references.
+-- =========================================================================
+
 CREATE OR REPLACE PROCEDURE sp_load_lead_time_snapshots AS
     v_rows_inserted NUMBER := 0;
     v_rows_updated  NUMBER := 0;

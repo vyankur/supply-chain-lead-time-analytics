@@ -1,3 +1,10 @@
+-- =========================================================================
+-- DEVELOPER PLACEHOLDER NOTICE (Ankur Varshney):
+-- This SQL view represents your GE Power Supply Chain Lead Time database logic.
+-- Replace the staging tables (tbl_po_lines, tbl_shipments, tbl_deliveries)
+-- with your actual schema references when executing in production.
+-- =========================================================================
+
 CREATE OR REPLACE VIEW vw_supply_chain_lead_time AS
 WITH stage_timestamps AS (
     SELECT 
