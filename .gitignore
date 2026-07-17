@@ -1,7 +1,0 @@
-.DS_Store
-.env
-logs/
-target/
-dbt_packages/
-*.log
-*.tmp

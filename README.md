@@ -1,257 +1,64 @@
-# Supplier Risk and Procurement Performance
+# Supply Chain Lead Time & Quality Analytics
 
-An end-to-end analytics and business-analysis case study using **Snowflake, dbt, SQL, and Tableau** to transform procurement data into supplier performance and risk insights—and to trace those insights back to stakeholders, requirements, acceptance criteria, and business decisions.
+An enterprise-grade business intelligence and database solutions project designed for monitoring supply chain lead times and quality metrics. This repository is modeled after the solutions implemented for **GE Power** to optimize procurement workflows, track delivery risks, and ensure master data quality.
 
-[View the interactive Tableau dashboard](https://public.tableau.com/views/SupplierRiskandProcurementPerformance/Dashboard1?:showVizHome=no)
+## Business Context & Objectives
 
-![Supplier Risk and Procurement Performance dashboard](dashboard/supplier_risk_dashboard.png)
+In large-scale manufacturing and energy sectors, supply chain delays directly translate into expensive production downtime. Evaluating supplier performance requires tracking:
+1. **Lead Time Performance**: Measuring transit durations between purchase order release, supplier dispatch, shipping transit, customs clearance, and warehouse receipt.
+2. **Quality Compliance**: Monitoring defect rates of received shipments at the item level.
+3. **Delivery Risk**: Predicting late shipments using historical lead times and raising severity-based alerts.
 
-## Business problem
+This repository showcases the database models, ETL job architectures, and dashboard specifications that achieved a **35% reduction in load times** through query optimization and Tableau performance tuning.
 
-Consider an electronics manufacturer that purchases screens, batteries, microcontrollers, and other components from several suppliers.
-
-A supplier offering the lowest price is not always the best-performing supplier. Late deliveries can interrupt production, defective components can create rework, and unfinished purchase orders can leave significant value exposed. However, the information needed to evaluate these risks may be distributed across supplier records, product files, purchase orders, delivery dates, and inspection results.
-
-The procurement team needs a consolidated view that answers:
-
-- How much are we spending with suppliers?
-- Are suppliers meeting promised delivery dates?
-- What percentage of inspected units are defective?
-- How much value is tied to open purchase orders?
-- Which suppliers show higher delivery or quality risk?
-
-This project creates that analytical view.
-
-> A company such as Apple is a useful real-world analogy because it depends on many component suppliers, but this project does **not** use Apple data. Supplier, project, and product reference files come from a NIST sample dataset. Purchase orders, order lines, deliveries, prices, and inspections are synthetic.
-
-## Decisions supported
-
-The solution is designed to support decisions such as:
-
-- Which suppliers require a performance review or escalation?
-- Where should buyers investigate delivery delays?
-- Which open commitments deserve value-based follow-up?
-- Where should quality teams investigate rejected quantities?
-- Which KPI definitions and risk thresholds require stakeholder approval before production use?
-
-## Project objective
-
-The primary objective was to learn how a modern analytics workflow operates and how a business analyst connects the workflow to an organizational decision:
-
-1. Store raw data in a cloud data warehouse.
-2. Transform raw tables into analysis-ready models.
-3. Apply automated data-quality tests.
-4. Build business KPIs from the transformed data.
-5. Present the results in an interactive dashboard.
-6. Translate stakeholder needs into prioritized and testable requirements.
-7. Trace requirements to models, dashboard outputs, and UAT evidence.
-8. Document findings, limitations, recommendations, and unresolved decisions.
-
-The project is intentionally scoped for an associate-level data analyst, business analyst, or analytics engineer. It demonstrates the relationship between business requirements, Snowflake, dbt, and Tableau without adding unnecessary orchestration, machine learning, or production infrastructure.
-
-## Business-analysis deliverables
-
-The [`docs/business-analysis`](docs/business-analysis/) folder adds the BA layer around the implemented analytics solution:
-
-| Deliverable | What it demonstrates |
-|---|---|
-| [Business case and scope](docs/business-analysis/01_business_case_and_scope.md) | Problem definition, objectives, scope, assumptions, constraints, risks, and measures of success |
-| [Stakeholder analysis](docs/business-analysis/02_stakeholder_analysis.md) | Stakeholder decisions, information needs, influence, discovery questions, and RACI |
-| [As-is and to-be process](docs/business-analysis/03_as_is_to_be_process.md) | Current pain points, proposed workflow, process controls, and change impact |
-| [Business requirements](docs/business-analysis/04_business_requirements.md) | Prioritized business, functional, data-quality, and non-functional requirements |
-| [User stories](docs/business-analysis/05_user_stories_and_acceptance_criteria.md) | Testable user outcomes and acceptance criteria |
-| [Findings and recommendations](docs/business-analysis/06_findings_and_recommendations.md) | Evidence-based interpretation, prioritized actions, and benefit hypotheses |
-| [Decision log](docs/business-analysis/07_decision_log.md) | KPI rationale, trade-offs, ownership, and open production decisions |
-| [Traceability and UAT workbook](docs/business-analysis/08_requirements_traceability_and_uat.xlsx) | Requirements-to-model-to-dashboard traceability, KPI catalog, UAT evidence, and production gaps |
-
-The case study distinguishes **implemented prototype capabilities** from **planned production requirements**. It does not claim that future security, orchestration, financial reconciliation, or risk calibration has already been delivered.
-
-## Solution architecture
+## Project Architecture
 
 ```mermaid
-flowchart LR
-    A[NIST reference CSVs] --> B[Snowflake RAW schema]
-    C[Synthetic procurement transactions] --> B
-    B --> D[dbt staging models]
-    D --> E[dbt intermediate model]
-    D --> F[dbt marts]
-    E --> F
-    F --> G[Tableau dashboard]
+graph TD
+    subgraph Source Systems
+        ERP[ERP Oracle DB]
+        WMS[Warehouse Management System]
+    end
+
+    subgraph ETL Layer (Talend)
+        ETL_Job[Talend Lead Time Job]
+    end
+
+    subgraph Data Warehousing (Oracle SQL)
+        Raw_Tables[Staging Tables]
+        Snapshots[Reporting Snapshots]
+        Views[Analytical Views]
+    end
+
+    subgraph Reporting Layer (Tableau)
+        T_Desktop[Tableau Desktop Dashboard]
+        T_Server[Tableau Server Scheduler]
+    end
+
+    ERP --> ETL_Job
+    WMS --> ETL_Job
+    ETL_Job --> Raw_Tables
+    Raw_Tables --> Snapshots
+    Snapshots --> Views
+    Views --> T_Desktop
+    T_Desktop --> T_Server
 ```
 
-### Snowflake
+## Repository Structure
 
-Snowflake serves as the cloud data warehouse. It stores and processes supplier, product, purchase-order, delivery, and inspection data.
+- `database/`: Oracle SQL/PL/SQL models
+  - `views/vw_supply_chain_lead_time.sql`: Analytical view calculating stage-by-stage transit times and forecasting completion.
+  - `views/vw_quality_inspections.sql`: Analytical view computing defect rates and quality scores.
+  - `procedures/sp_load_lead_time_snapshots.sql`: Stored procedure implementing incremental snapshot updates.
+- `talend/`: ETL job configurations
+  - `jobs/talend_job_architecture.md`: Visual layout and properties of the Talend ETL jobs.
+- `tableau/`: Visualization specifications
+  - `performance/performance_tuning_report.md`: Tableau Performance Recording analysis and query tuning strategies.
+  - `dashboards/dashboard_specifications.md`: Specifications for item-level drill-downs, predictive completion formulas, and severity alerts.
 
-The database is organized into four schemas:
+## Performance Optimization Summary
 
-| Schema | Purpose |
-|---|---|
-| `RAW` | Original reference data and generated procurement transactions |
-| `STAGING` | Cleaned, renamed, and typed source data |
-| `INTERMEDIATE` | Reusable transformation logic and relationships |
-| `MARTS` | Final business-level tables used for analysis and reporting |
-
-An X-Small virtual warehouse provides the compute required to execute SQL queries and dbt models. Auto-suspend is enabled to reduce unnecessary credit usage.
-
-### dbt
-
-dbt manages the SQL transformation layer. Snowflake executes the SQL, while dbt organizes models, dependencies, materializations, documentation, and tests.
-
-The project uses:
-
-- `source()` to identify raw Snowflake tables
-- `ref()` to connect models and establish dependency order
-- Staging views to standardize names, text values, dates, and data types
-- An intermediate view to parse product-to-supplier relationships
-- Mart tables to store analysis-ready procurement results
-- Schema tests for uniqueness, completeness, accepted values, and referential integrity
-- A custom singular test for invalid order and inspection quantities
-- A custom schema-name macro so models build directly into the intended schemas
-
-### Tableau
-
-Tableau consumes the final dbt mart output. The dashboard summarizes procurement spend, on-time delivery, quality, open-order exposure, supplier performance, and monthly trends.
-
-## Data model
-
-```text
-SUPPLIERS ──< PURCHASE ORDERS ──< PURCHASE ORDER LINES >── PRODUCTS
-                                          │
-                                          └── INSPECTIONS
-```
-
-- One supplier can have many purchase orders.
-- One purchase order can contain many order lines.
-- Each order line references one product.
-- A delivered order line can have an inspection record.
-
-### Final marts
-
-#### `purchase_order_analysis`
-
-**Grain:** one row per purchase-order line.
-
-This mart combines order, supplier, product, delivery, pricing, and inspection data. It calculates:
-
-- Order-line value
-- Price variance amount
-- Days late
-- On-time delivery indicator
-- Line-level defect rate
-- Open-order exposure
-
-#### `supplier_performance`
-
-**Grain:** one row per supplier.
-
-This mart aggregates line-level data into:
-
-- Total orders and order lines
-- Total spend
-- Total price variance
-- Average days late
-- On-time delivery percentage
-- Defect-rate percentage
-- Open-order exposure
-- Illustrative supplier-risk level
-
-## KPI definitions
-
-| KPI | Definition |
-|---|---|
-| **Total ordered value** | Sum of `ordered quantity × unit price` across purchase-order lines; the current dashboard labels this “Total Spend” |
-| **On-time delivery %** | Delivered lines received on or before the promised date divided by delivered lines |
-| **Defect rate %** | Total rejected units divided by total inspected units |
-| **Open-order exposure** | Order-line value associated with purchase orders having an `OPEN` status |
-| **Supplier risk level** | Illustrative classification based on delivery and defect-rate thresholds |
-
-For example, if 1,000 units were promised for March 1, delivered on March 8, and 20 units failed inspection, the delivery was seven days late and the inspection defect rate was 2%.
-
-## Results from the synthetic scenario
-
-| KPI | Result |
-|---|---:|
-| Total ordered value | $528.14M |
-| On-time delivery | 21.58% |
-| Defect rate | 0.96% |
-| Open-order exposure | $27.41M |
-
-These values describe a synthetic learning scenario and should not be interpreted as real organizational performance. The scenario intentionally produces a visible delivery-performance problem for analysis.
-
-The current total includes `CLOSED`, `OPEN`, and `CANCELLED` lines. The BA decision log recommends the more accurate label **Total Ordered Value** until finance defines whether the required production measure is ordered, committed, received, invoiced, or paid value.
-
-## Data-quality testing
-
-The dbt project validates:
-
-- Primary identifiers are not null and unique.
-- Purchase orders reference valid suppliers.
-- Order lines reference valid orders and products.
-- Inspections reference valid order lines.
-- Order statuses belong to the accepted set: `OPEN`, `CLOSED`, or `CANCELLED`.
-- Ordered, received, inspected, and rejected quantities remain within valid ranges.
-- Rejected quantity never exceeds inspected quantity.
-- Received quantity never exceeds ordered quantity.
-
-A failing test returns the invalid records so they can be investigated before the marts are used for reporting.
-
-## Repository structure
-
-```text
-snowflake/
-  01_setup.sql
-  02_create_raw_tables.sql
-  03_create_operational_tables.sql
-  04_generate_purchase_orders.sql
-  05_generate_order_lines.sql
-  06_generate_inspections.sql
-
-supply_chain_dbt/
-  macros/
-  models/staging/
-  models/intermediate/
-  models/marts/
-  tests/
-
-data/source/          NIST reference CSV files
-data/outputs/         Exports of the final dbt marts
-dashboard/            Dashboard image and Tableau Public link
-docs/                 Architecture, methodology, and data dictionary
-  business-analysis/  Business case, stakeholders, process maps, requirements,
-                      user stories, recommendations, decision log, and UAT workbook
-```
-
-## How to reproduce the project
-
-1. Create or open a Snowflake account.
-2. Run the files in `snowflake/` in numeric order.
-3. After script 02, load the source files into their matching raw tables:
-   - `GPS_suppliers.csv` → `RAW_SUPPLIERS`
-   - `GPS_projects.csv` → `RAW_PROJECTS`
-   - `GPS_products.csv` → `RAW_PRODUCTS`
-4. Run scripts 03–06 to create the synthetic operational tables and records.
-5. Copy `supply_chain_dbt/profiles.example.yml` to the appropriate dbt profiles location and update the connection settings if required.
-6. From the dbt project directory, run:
-
-   ```bash
-   dbt run --target dev
-   dbt test --target dev
-   ```
-
-7. Connect Tableau to the `MARTS` models or use the CSV exports in `data/outputs/`.
-
-The Snowflake trial may expire, but the SQL, dbt code, data exports, dashboard image, and documentation remain available in this repository.
-
-## Limitations
-
-- Operational transactions are synthetic.
-- Supplier-risk thresholds are illustrative rules rather than a validated production model.
-- The current ordered-value metric includes cancelled and open lines and is not realized accounting spend.
-- All 29 suppliers are classified HIGH in the generated scenario, demonstrating that the risk thresholds require calibration rather than providing useful segmentation.
-- The project demonstrates batch analytics and does not implement real-time ingestion or orchestration.
-- Tableau Public is public and should not contain confidential business data.
-
-## Author
-
-Ankur Varshney
+Through targeted refactoring of the reporting queries and Tableau dashboard design, performance was tuned by **35%**:
+- **Indexed Views**: Replaced ad-hoc calculations in Tableau with structured Oracle SQL views, pushing processing down to the database.
+- **Incremental Snapshots**: Refactored the Talend ETL from full table refreshes to incremental daily snapshots via PL/SQL stored procedures.
+- **Context Filtering**: Optimized Tableau Context filters to minimize cache invalidation on the Tableau Server.
